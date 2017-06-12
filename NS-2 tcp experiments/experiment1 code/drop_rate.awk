@@ -1,0 +1,32 @@
+BEGIN {
+#Initialize the variables
+#Packet Drop Rate = (Total Packet sent – Total Packet received) / Total Packet sent
+#monitor on Node_(N1) Node_(N2) Node_(N3) Node_(N4) to get value above
+pkt_sent_cnt = 0;
+pkt_recv_cnt = 0; 
+}
+
+{
+  EVE = $1; SOURCE = $3; DEST = $4;  TYPE = $5;  SOURCE_ADDR = $9;  DEST_ADDR = $10;
+
+#Calculate how many packets were sent and how many were received at the sink
+if (EVE == "+" && TYPE == "tcp" && SOURCE == 0 && DEST == 1) {
+	if(SOURCE_ADDR =="0.0" && DEST_ADDR == "3.0"){
+		pkt_sent_cnt++;
+	}
+}
+
+if (EVE == "r" && TYPE == "tcp" && SOURCE == 2 && DEST == 3) {
+	if(SOURCE_ADDR == "0.0" && DEST_ADDR == "3.0"){
+		pkt_recv_cnt++;	
+	}
+}
+
+}
+
+END {
+#Calculate the drop rate and print
+if (pkt_sent_cnt != "0") {
+	printf (((pkt_sent_cnt - pkt_recv_cnt) / pkt_sent_cnt) "\n");
+}
+}

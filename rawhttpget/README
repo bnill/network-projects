@@ -1,0 +1,64 @@
+HIGH LEVEL APPROACH
+====================
+The high level approach of this program is to implement low-level operations of the Internet protocol stack, here we created a program called rawhtttpget , this program  takes url link as script argument and will download the associated file from that link.
+	We started to design the program by creating raw socket for IP, TCP, HTTP  and we also designed the code for handling checksum, (cwnd)congestion window, timeout handling, 
+validating IP and error handling.
+	We also handled complete 3 way handshake process of TCP/IP by sending SYN packet for first handshake, Receiving SYN, ACK for second handshake and sending ACK bit set for 
+third handshake
+	Once we established TCP handshake, we created HTTP GET message to fetch required URL and we received the http response from server and filtered for required packets and saved 
+the associated file and finally we also tear down the connection from both ends.
+	For downloaded filename, if url link contains only servername say "www.ccs.neu.edu" , the downloaded file is named as "index.html" and for other links
+ex: say "http://david.choffnes.com/classes/cs4700fa16/project4.php" , the downloaded filename is named as "project4.php"  and saved in the destination folder currently executed
+	We handled script arguments validation and also URL validation for entered URL to check to be in valid format or not.
+    We also handled congestion mechanism, by updating the value of CWND when required ACK_number and SEQ_number is received
+	Finally for timeout issues, We handled retransmission mechnanisms for either to resend or abort the program based on requirement.
+
+CHALLENGE FACED
+=================
+1. while handling random sequence number for Setting the ack_to_receive value and seq_to_receive value
+2. while unpacking the TCP and IP packet based on the format given in RFC
+3. while retrieving the local IP address and the host address required
+4. while dealing with timeout, retransmission and Finishing process of TCP connection.
+
+INSTRUCTIONS TO RUN THE PROGRAM:
+================================
+1. One must run this program with root privileges (using sudo command) , the format of the execution command is 
+./rawhttpget <url to be downloaded>
+
+ex:./rawhttpget http://david.choffnes.com/classes/cs4700fa16/project4.php
+
+2. Before executing the program, one have to execute iptables command to set the rule in iptables to drop outgoing TCP RST packets , and the command is 
+"iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP"
+
+3. This program doesnt support https and it doesnt handles other http response codes other than status 200 OK
+
+POSITIVE AND NEGATIVE TEST CASE SCENARIOS:
+==========================================
+
+sudo ./rawhttpget http://david.choffnes.com/
+OUTPUT : file with name index.html is downloaded and verified the same using wget
+
+sudo ./rawhttpget http://david.choffnes.com/classes/cs4700fa16/2MB.log
+OUTPUT : file with name 2MB.log is downloaded
+
+sudo ./rawhttpget http://david.choffnes.com/classes/cs4700fa16/10MB.log
+OUTPUT :  file with name 10MB.log is downloaded
+
+sudo ./rawhttpget http://david.choffnes.com/classes/cs4700fa16/50MB.log 
+OUTPUT : file with name 50MB.log is downloaded 
+
+sudo ./rawhttpget http://david.choffnes.com/ http://ccs.neu.edu/
+OUTPUT: Error message "Invalid number of script arguments passed" will be displayed
+
+sudo ./rawhttpget 
+OUTPUT: Error message "Invalid number of script arguments passed" will be displayed
+
+sudo ./rawhttpget abcisaguy
+OUTPUT: Error message "Url validation failed: Enter Correct URL link" will be displayed
+
+sudo ./rawhttpget http://david.choffnes.com/classes/cs4700fa16/20000000MB.log
+OUTPUT: Error message is displayed at the console 
+
+REFERENCES:
+===========
+1. http://www.binarytides.com/raw-socket-programming-in-python-linux/

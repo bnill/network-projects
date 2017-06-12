@@ -1,0 +1,81 @@
+lassign $argv TCP_SOURCE QUEUE
+
+#Create a simulator object
+set ns [new Simulator]
+
+#Open the trace file (before you start the experiment!)
+set tf [open $TCP_SOURCE-$QUEUE.tr w]
+$ns trace-all $tf
+
+#Define a 'finish' procedure
+proc finish {} {
+        global ns tf
+        $ns flush-trace
+        close $tf
+        exit 0
+}
+
+#Setup the six nodes for the network topology
+set node_(N1) [$ns node]
+set node_(N2) [$ns node]
+set node_(N3) [$ns node]
+set node_(N4) [$ns node]
+set node_(N5) [$ns node]
+set node_(N6) [$ns node]
+
+#Create links between the nodes
+$ns duplex-link $node_(N1) $node_(N2) 10Mb 2ms $QUEUE
+$ns duplex-link $node_(N5) $node_(N2) 10Mb 2ms $QUEUE
+$ns duplex-link $node_(N2) $node_(N3) 10Mb 2ms $QUEUE
+$ns duplex-link $node_(N3) $node_(N4) 10Mb 2ms $QUEUE
+$ns duplex-link $node_(N3) $node_(N6) 10Mb 2ms $QUEUE
+
+#Set Queue Size
+$ns queue-limit $node_(N1) $node_(N2) 30
+$ns queue-limit $node_(N5) $node_(N2) 30
+$ns queue-limit $node_(N2) $node_(N3) 30
+$ns queue-limit $node_(N3) $node_(N4) 30
+$ns queue-limit $node_(N3) $node_(N6) 30
+
+#TCP Source from node1 to node4
+set tcp [new Agent/TCP/$TCP_SOURCE]
+$tcp set class_ 2
+$tcp set window_ 10000
+$ns attach-agent $node_(N1) $tcp
+set sink [new Agent/TCPSink]
+$ns attach-agent $node_(N4) $sink
+
+$ns connect $tcp $sink
+ 
+#Setup a FTP Agent over the TCP connection
+set ftp [new Application/FTP]
+$ftp attach-agent $tcp
+$ftp set type_ FTP
+
+#UDP Source from node5 to node6
+set udp [new Agent/UDP]
+$ns attach-agent $node_(N5) $udp
+set null [new Agent/Null]
+$ns attach-agent $node_(N6) $null
+$ns connect $udp $null
+
+#Setup a CBR over UDP connection with 6 Mbps
+set cbr [new Application/Traffic/CBR]
+$cbr attach-agent $udp
+$cbr set type_ CBR
+$cbr set packet_size_ 1000
+$cbr set rate_ 6000000
+$cbr set random_ false
+
+#Schedule events for the CBR and FTP agents
+$ns at 0.0 "$ftp start"
+$ns at 90.0 "$ftp stop"
+
+$ns at 30.0 "$cbr start"
+$ns at 90.0 "$cbr stop"
+
+#Call the finish procedure 
+$ns at 90.0 "finish"
+
+#Run the simulation
+$ns run

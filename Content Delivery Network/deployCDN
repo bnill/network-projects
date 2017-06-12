@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#validation of script arguments
+if [[ $# -eq 0 || $# -gt 10 || $# -lt 10 ]] ; then
+   printf " Error: %d arguments entered, Plese provide in proper syntax ./deployCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>\n" "$#"
+   exit 0
+elif [ ! -f ${10} ] ; then
+   printf "The given keyfile doesnot exists so aborting the script\n"
+   exit 0
+fi
+
+# Information of all replica servers list
+HOSTS_LIST=(ec2-54-210-1-206.compute-1.amazonaws.com                
+ec2-54-67-25-76.us-west-1.compute.amazonaws.com         
+ec2-35-161-203-105.us-west-2.compute.amazonaws.com      
+ec2-52-213-13-179.eu-west-1.compute.amazonaws.com       
+ec2-52-196-161-198.ap-northeast-1.compute.amazonaws.com 
+ec2-54-255-148-115.ap-southeast-1.compute.amazonaws.com 
+ec2-13-54-30-86.ap-southeast-2.compute.amazonaws.com    
+ec2-52-67-177-90.sa-east-1.compute.amazonaws.com        
+ec2-35-156-54-135.eu-central-1.compute.amazonaws.com 
+)
+
+#SYNTAX of the script: ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+
+
+# Using scp command for Copying all DNS related files into cs5700cdnproject.ccs.neu.edu server
+# SYNTAX : scp -i ${keyfile} dnsserver replicas dnsserver.py delay_helper.py DNSPacket.py ${username}@cs5700cdnproject.ccs.neu.edu:~
+echo "Copying all DNS related files into cs5700cdnproject.ccs.neu.edu server..."
+ssh -i ${10} $8@cs5700cdnproject.ccs.neu.edu "chmod 755 dnsserver"
+scp -oStrictHostKeyChecking=no  -i ${10} dnsserver dnsserver.py $8@cs5700cdnproject.ccs.neu.edu:~
+
+# Using scp command for Copying all HTTP related files into all hosts
+#SYNTAX: scp -i ${keyfile} httpserver httpserver.py MyLRU.py DelayServer.py replicas ${username}@${host}:~
+for host in "${HOSTS_LIST[@]}"
+do
+  echo "Copying all HTTP related files into the hosts $host..."
+  ssh -i ${10} $8@${host} "chmod 755 httpserver.py"
+  scp -oStrictHostKeyChecking=no -i ${10} httpserver httpserver.py $8@${host}:~
+done
+
+

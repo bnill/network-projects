@@ -1,0 +1,118 @@
+High-level approach
+===================
+1. Components of the project:
+    1. DNSserver with GeoIP decision logic 
+    2. HTTPserver 
+    3. deployCDN/ runCDN/ stopCDN scripts
+    
+2.DNS server
+    When the dns server receives a request from the client, the server finds the best replica server for this client. We choose to use the relative Geo location as the standard to 
+find out the replica server. 
+    The reason is:
+    1. Finding the RTT between the client and replica servers needs time. Caching the ip selection actively for the first time needs the last probe to come. Geo is static.
+    2. Geo doesn't need the probing time.
+    3. There is great api for GeoIP.
+
+    The dns server uses multithread programming to deal with multi requests at the same time
+    Unpacking the DNS packet into different parts and answer the question by packing the answering packet
+    Compute Geo distance by longitude and latitude.
+
+3. HTTP server
+    When the http server receives a request from the client, the server finds at its local page_cache to find if the page requested is in the cache. If cached, then send the 
+file cached and update the cache hits. If not cached, the server requests the page from the original server for the file. If cache is full, updating it by the LRU algorithm 
+to fulfill the actual requirements. (some pages are requested far more frequently).
+
+    The usage of LRU algorithm to update the cache
+    Usage of urllib2.urlopen to cache the new pages, unlike the work done in project4
+    Use cache_hits, page_cache, current_cache_size to update the local cache
+
+4. runCDN/ deployCDN/ stopCDN
+	deployCDN script is used to copy dns related files to dns server "cs5700cdnproject.ccs.neu.edu" and http related files to all replica hosts 
+	runCDN script is used to execute both dns server and http server
+	stopCDN script is used to killall python process running on dns server "cs5700cdnproject.ccs.neu.edu" and all the hosts
+	
+
+To run the program:
+====================
+
+For deployCDN script syntax is:
+./deployCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+
+For runCDN script syntax is:
+./runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+
+For stopCDN script syntax is:
+./stopCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>	
+
+where <port> is any high numbered port between 40000-65535
+	  <origin> is origin server ip , in our case it is (ec2-54-167-4-20.compute-1.amazonaws.com)
+	  <name> is "cs5700cdn.example.com"
+	  <username> is ccis username ex: bmani
+	  <keyfile> is private key of our account
+    
+We verified the output of the program with help of dig and wget commands and desired web page is getting downloaded finally.
+ 
+Positive Testcase Scenarios:
+-----------------------------
+./deployCDN -p 55000 -o ec2-54-167-4-20.compute-1.amazonaws.com -n cs5700cdn.example.com -u bmani -i id_rsa
+./runCDN -p 55000 -o ec2-54-167-4-20.compute-1.amazonaws.com -n cs5700cdn.example.com -u bmani -i id_rsa
+./stopCDN -p 55000 -o ec2-54-167-4-20.compute-1.amazonaws.com -n cs5700cdn.example.com -u bmani -i id_rsa
+
+Negative Testcase Scenarios: 
+-----------------------------
+./deployCDN -p 55000 -o ec2-54-167-4-20.compute-1.amazonaws.com -n cs5700cdn.example.com -u bmani -i id_rsa 12312441352312124
+./runCDN 
+./stopCDN -p 55000 -o ec2-54-167-4-20.compute-1.amazonaws.com -n cs5700cdn.example.com
+./deployCDN -p 55000 -o ec2-54-167-4-20.compute-1.amazonaws.com -n cs5700cdn.example.com -u bmani -i <not existing file> 
+
+
+Manual testing of HTTP and DNS server:
+======================================
+
+To Test DNS server 
+1)syntax is :
+
+ ./dnsserver -p <port> -n <name>
+where <port> is any high numbered port between 40000-65535
+      <name> is "cs5700cdn.example.com"
+
+2)
+ Using Dig command syntax is :
+dig @[DNSserver] -p [port] <name>
+where <port> is any high numbered port between 40000-65535
+      <name> is "cs5700cdn.example.com"
+	  <DNSserver> is "cs5700cdnproject.ccs.neu.edu"
+
+To Test	HTTP server syntax is:
+
+1)syntax is 
+./httpserver -p <port> -o <origin>
+where <port> is any high numbered port between 40000-65535 , it should be same as used for DNS server port
+	  <origin> is origin server ip , in our case it is (ec2-54-167-4-20.compute-1.amazonaws.com)
+
+2)
+Using Wget command syntax is:
+wget http://[server name]:[port]/[path to content]
+where <port> is any high numbered port between 40000-65535 , it should be same as used for DNS server port
+	 <server name> is the server that is returned after execution of DNS server
+ 
+CHALLENGE FACED
+=================
+1. Testing the httpserver locally
+    Ubuntu forbids the direct call of 127.0.0.1 to visit the file system. When testing, a httpserver has to be run to act as the origin at localhost port 8080.
+
+2. Finding the Geo location
+    We used to update the geo location at a time interval, but the api forbids frequent requesting for geo location, so running the script is time consuming. We choose to 
+store the geo location as static.
+
+3. Deploying the CDN
+    Running cdn needs the permission, we were stucked when testing on the ec2 servers
+
+4. Defining the data structure for cache
+   We used to store cache as a list of tuples of 2 elements: directory, cache_hits. This structure seems to take more space than dealing with them separately. We maintain
+their relationship by means of index.
+
+FUTURE IMPROVEMENTS:
+======================
+In future , this script performance can be improved by implementing multi threading concepts between HTTP server to communicate with more HTTP clients at a given time.
+    

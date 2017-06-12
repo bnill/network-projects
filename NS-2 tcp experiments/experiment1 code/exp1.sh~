@@ -1,0 +1,26 @@
+#!/bin/bash
+# test cbr_rate from 1Mb to 10Mb step 1Mb
+for CBR in $(seq 1000000 1000000 10000000)
+	do
+		ns experiment1_start_same.tcl TCP $CBR 30
+		ns experiment1_start_same.tcl Newreno $CBR 30
+		ns experiment1_start_same.tcl Vegas $CBR 30
+	
+		gawk -f throughput.awk same_start-TCP-$CBR-30.tr >> Tcp_q30_throughput.csv
+		gawk -f latency.awk same_start-TCP-$CBR-30.tr >> Tcp_q30_latency.csv
+		gawk -f drop_rate.awk same_start-TCP-$CBR_RATE-30.tr >> Tcp_q30_drop_rate.csv
+
+		ns experiment1_start_same.tcl Reno $CBR 30
+		gawk -f throughput.awk same_start-Reno-$CBR-30.tr >> Reno_q30_throughput.csv
+		gawk -f latency.awk same_start-Reno-$CBR-30.tr >> Reno_q30_latency.csv
+		gawk -f drop_rate.awk same_start-Reno-$CBR-30.tr >> Reno_q30_drop_rate.csv
+
+		gawk -f throughput.awk same_start-Newreno-$CBR-30.tr >> Newreno_q30_throughput.csv
+		gawk -f latency.awk same_start-Newreno-$CBR-30.tr >> Newreno_q30_latency.csv
+		gawk -f drop_rate.awk same_start-Newreno-$CBR-30.tr >> Newreno_q30_drop_rate.csv
+
+		gawk -f throughput.awk same_start-Vegas-$CBR-30.tr >> Vegas_q30_throughput.csv
+		gawk -f latency.awk same_start-Vegas-$CBR-30.tr >> Vegas_q30_latency.csv
+		gawk -f drop_rate.awk same_start-Vegas-$CBR-30.tr >> Vegas_q30_drop_rate.csv
+
+	done
