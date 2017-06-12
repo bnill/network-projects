@@ -1,0 +1,43 @@
+HIGH LEVEL APPROACH
+
+1.The PROJECT is to design a web crawler that gathers data from a fake social networking website called fakebook and to print 5 secret flags hidden in the pages of the fakebook website.
+2. In first phase, we created HTTP GET request, by initially creating TCP socket and connecting to the server, then making HTTP GET to obtain the login page and then finally terminating the TCP socket connection. 
+3. In phase two, we set up a new TCP connection with the server and built the HTTP POST request which includes the username and password, csrtoken_id and session_id we got from phase_1
+and then sent it to the server. The server responded us with the status code 302. Upon receiving status code, we closed the TCP connection of phase 2. Here The status code 302 response, deals with confirmation of user logged in, and also it includes a new session_id.
+to enable the later GET requests. We record this session_id and the csrtoken_id to do web crawling.
+4. In final web crawling phase, we set up two lists to avoid infinite looping. They are variable "book_pages to contain the "urls found" and variable "visited" to record the pages that we have crawled. If the pages to be crawled is in the visited list, then we won't crawl that again. 
+5. We used Regex to find the secret flags on the pages that are crawled. Once upon receiving on all five secret_flags on the web page, then we are exiting the program. 
+
+CHALLENGES FACED:
+(1) Change of session_id
+        The first obstacle in our project is the change of session_id after logging in. We are receiving 408 requests repeatedly when using the old session_id to do the web-crawling.
+After doing research on Chrome Process of logging in the fakebook, we figured out that the session_id required for web crawling is changed after we receive the 302 request.
+
+(2) Lack of essential element of GET request to do crawling
+        At first, we only included the GET line, data part, Referer, and encoding to do web crawling resulting in receiving 500 error continually. We amended the GET request to the style
+of Google Chrome which finally solved the problem.
+
+(3) Infinite Loop when dealing with error states
+	When dealing with the 301 states given by the server, at first we didn't check whether the new url given is in the visited list, which finally resulted to the infinite loop.
+
+(4) The usage of += when dealing with list in python
+        When adding visited links, at first we used += instead of visited.append(url), which had the effect of adding 1string to the visited. This is not the effect of adding urls to the 
+list that we wanted. We solved the problem by changing to visited.append(url).   
+
+(5) Use of seperate sockets for HTTP GET and POST requests
+		We initially used one tcp for both HTTP GET and POST requests which ended in error, later we rectified to use unique sockets for each HTTP GET and POST requests
+
+TESTED TESTCASE SCENARIOS:
+
+Positive test case scenarios:
+
+./webcrawler 001664011 7IH0G31K
+./webcrawler 001284143 F667U2PW
+
+Negative test case scenarios
+
+./webcrawler 4334 7IH0G31K
+./webcrawler abcdefg 7IH0G31K
+./webcrawler 001284143
+./webcrawler 001664011
+./webcrawler 001664011 7IH0G31K ABCDEFGHI
